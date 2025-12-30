@@ -1,0 +1,34 @@
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: image_proc_db
+      POSTGRES_USER: eemil
+      POSTGRES_PASSWORD: elShen10642612
+    ports:
+      - 0.0.0.0:5432:5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U eemil -d image_proc_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: .
+    volumes:
+      - .:/app
+      - media_data:/app/media
+    ports:
+      - '8000:8000'
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgres://eemil:elShen10642612@db:5432/image_proc_db
+
+volumes:
+  postgres_data:
+  media_data:
