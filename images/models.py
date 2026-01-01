@@ -29,8 +29,8 @@ class ImagesArtifact(models.Model):
         ('INPUT', 'Input Image'),
         ('OUTPUT', 'Processed Output'),
     ]
-    artifact_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     
+    artifact_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

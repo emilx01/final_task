@@ -28,19 +28,6 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgres://eemil:elShen10642612@db:5432/image_proc_db
-  redis:
-    image: redis:alpine
-    ports:
-      - '6379:6379'
-  worker:
-    build: .
-    command: celery -A finaltask.celery worker --loglevel=info
-    volumes:
-      - .:/app
-      - ./media:/app/media
-    depends_on:
-      - db
-      - redis
 
 volumes:
   postgres_data:

@@ -17,11 +17,11 @@ def process_image(request_log_id):
     output_format = input_artifact.filename.split('.')[-1].upper()
     if output_format == 'JPG': output_format = 'JPEG'
 
-    pipeline = log.payload.get("pipeline", [])
+    operations = log.payload.get("operations", [])
 
     try:
         with Image.open(input_path) as img:
-            for operation in pipeline:
+            for operation in operations:
                 op_type = operation.get("type")
 
                 if op_type == "resize":
@@ -71,10 +71,45 @@ def process_image(request_log_id):
         return f"Error opening image: {e}"
     
 def generate_gif(request_log_id):
-    pass
-#     log = RequestLog.objects.get(pk=request_log_id)
+    log = RequestLog.objects.get(pk=request_log_id)
 
-#     input_artifacts = log.artifacts.filter(artifact_type="INPUT")
+    input_artifacts = log.artifacts.filter(artifact_type="INPUT")
 
-#     pipeline = log.payload.get("pipeline", [])
+    images = []
+    
+    try:
+        for artifact in input_artifacts:
+            full_path = os.path.join(settings.MEDIA_ROOT, artifact.filename)
+            img = Image.open(full_path).convert("RGB")
+            images.append(img)
 
+            first_image = images[0]
+            resized_images = []
+            for img in images:
+                processed_img = img.resize(first_image.size, Image.Resampling.LANCZOS)
+                resized_images.append(processed_img)
+
+        output_filename = f"converted_{log.id}.gif"
+        output_path = os.path.join(settings.MEDIA_ROOT, output_filename)
+
+        resized_images[0].save(
+            output_path,
+            save_all=True,
+            append_images=resized_images[1:],
+            duration=500,
+            loop=0
+        )
+
+        log.status = "SUCCESS"
+        log.save()
+
+        ImagesArtifact.objects.create(
+            request_log=log,
+            filename=output_filename,
+            artifact_type="OUTPUT"
+        )
+
+    except Exception as e:
+        log.status = "FAILED"
+        log.save()
+        return f"Error converting into gif: {e}"
