@@ -88,8 +88,11 @@ DATABASES = {
     }
 }
 
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+MEDIA_URL = '/Media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'Media')
+
+os.makedirs(os.path.join(MEDIA_ROOT, "Uploaded images"), exist_ok=True)
+os.makedirs(os.path.join(MEDIA_ROOT, "Processed images"), exist_ok=True)
 
 ROOT_URLCONF = 'finaltask.urls'
 

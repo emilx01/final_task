@@ -26,7 +26,11 @@ def upload_image(request,
     try:
         operations = json.loads(specs)
     except json.JSONDecodeError:
-        operations = []
+        return [{
+            "request_id": 0,
+            "status": "FAILED",
+            "error": "Invalid JSON format (specs)"
+        }]
 
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -51,8 +55,8 @@ def upload_image(request,
 
         if file:
             for current_file in file:
-                save_filename = f"{gif_log.id}_{current_file.name}"
-                save_path = os.path.join(settings.MEDIA_ROOT, save_filename)
+                save_filename = f"{log.id}_{gif_log.timestamp.strftime('%Y-%m-%d')}_{current_file.name}"
+                save_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", save_filename)
                 
                 with open(save_path, 'wb+') as destination:
                     for chunk in current_file.chunks():
@@ -72,8 +76,8 @@ def upload_image(request,
                     png_str = file_json
                 png_bytes = base64.b64decode(png_str)
 
-                manual_filename = f"{gif_log.id}_base64_upload.png" 
-                manual_path = os.path.join(settings.MEDIA_ROOT, manual_filename)
+                manual_filename = f"{log.id}_{gif_log.timestamp.strftime('%Y-%m-%d')}_base64_upload.png" 
+                manual_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", manual_filename)
 
                 with open(manual_path, 'wb') as fid:
                     fid.write(png_bytes)
@@ -99,7 +103,7 @@ def upload_image(request,
                 results.append({"request_id": log.id, "status": log.status, "error": str(e)})
 
         threading.Thread(target=generate_gif, args=(gif_log.id,)).start()
-        results.append({"request_id": gif_log.id, "status": gif_log.status})
+        results.append({"request_id": gif_log.id, "status": gif_log.status, "error": "No errors"})
 
     else:
         if file:
@@ -110,8 +114,8 @@ def upload_image(request,
                     payload={"original_filename": current_file.name, "operations": operations}
                 )
 
-                save_filename = f"{log.id}_{current_file.name}"
-                save_path = os.path.join(settings.MEDIA_ROOT, save_filename)
+                save_filename = f"{log.id}_{log.timestamp.strftime('%Y-%m-%d')}_{current_file.name}"
+                save_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", save_filename)
 
                 with open(save_path, 'wb+') as destination:
                     for chunk in current_file.chunks():
@@ -140,8 +144,8 @@ def upload_image(request,
                     png_str = file_json
                 png_bytes = base64.b64decode(png_str)
 
-                manual_filename = f"{log.id}_base64_upload.png"
-                manual_path = os.path.join(settings.MEDIA_ROOT, manual_filename)
+                manual_filename = f"{log.id}_{log.timestamp.strftime('%Y-%m-%d')}_base64_upload.png"
+                manual_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", manual_filename)
 
                 with open(manual_path, 'wb') as fid:
                     fid.write(png_bytes)

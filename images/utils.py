@@ -11,7 +11,7 @@ def process_image(request_log_id):
     input_artifact = log.artifacts.get(artifact_type="INPUT")
     print(input_artifact)
 
-    input_path = os.path.join(settings.MEDIA_ROOT, input_artifact.filename)
+    input_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", input_artifact.filename)
     print(input_path)
 
     output_format = input_artifact.filename.split('.')[-1].upper()
@@ -51,9 +51,14 @@ def process_image(request_log_id):
                 if op_type == "grayscale":
                     img = img.convert("L")
 
-
-            output_filename = f"processed_{input_artifact.filename}"
-            output_path = os.path.join(settings.MEDIA_ROOT, output_filename)
+            base_name, _ = os.path.splitext(input_artifact.filename)
+            if output_format == "JPEG":
+                new_extension = ".jpg"
+            else:
+                new_extension = ".png"
+            
+            output_filename = f"processed_{base_name}{new_extension}"
+            output_path = os.path.join(settings.MEDIA_ROOT, "Processed images", output_filename)
             img.save(output_path, format=output_format)
 
         log.status = "SUCCESS"
@@ -79,7 +84,7 @@ def generate_gif(request_log_id):
     
     try:
         for artifact in input_artifacts:
-            full_path = os.path.join(settings.MEDIA_ROOT, artifact.filename)
+            full_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", artifact.filename)
             img = Image.open(full_path).convert("RGB")
             images.append(img)
 
@@ -90,14 +95,14 @@ def generate_gif(request_log_id):
                 processed_img = img.resize(first_image.size, Image.Resampling.LANCZOS)
                 resized_images.append(processed_img)
 
-            output_filename = f"converted_{log.id}.gif"
-        output_path = os.path.join(settings.MEDIA_ROOT, output_filename)
+            output_filename = f"converted_{log.timestamp.strftime("%Y-%m-%d")}.gif"
+            output_path = os.path.join(settings.MEDIA_ROOT, "Processed images", output_filename)
 
         resized_images[0].save(
             output_path,
             save_all=True,
             append_images=resized_images[1:],
-            duration=500,
+            duration=300,
             loop=0
         )
 

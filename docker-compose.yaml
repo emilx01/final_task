@@ -20,7 +20,7 @@ services:
     build: .
     volumes:
       - .:/app
-      - ./media:/app/media
+      - ./Media:/app/Media
     ports:
       - '8000:8000'
     depends_on:
