@@ -83,13 +83,14 @@ def generate_gif(request_log_id):
             img = Image.open(full_path).convert("RGB")
             images.append(img)
 
+        if images:
             first_image = images[0]
             resized_images = []
             for img in images:
                 processed_img = img.resize(first_image.size, Image.Resampling.LANCZOS)
                 resized_images.append(processed_img)
 
-        output_filename = f"converted_{log.id}.gif"
+            output_filename = f"converted_{log.id}.gif"
         output_path = os.path.join(settings.MEDIA_ROOT, output_filename)
 
         resized_images[0].save(

@@ -77,9 +77,12 @@ WSGI_APPLICATION = 'finaltask.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('POSTGRES_DB'),
-        'USER': os.getenv('POSTGRES_USERNAME'),
-        'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        # 'NAME': os.getenv('POSTGRES_DB'),
+        # 'USER': os.getenv('POSTGRES_USERNAME'),
+        # 'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+        'NAME' : 'image_proc_db',
+        'USER' : 'eemil',
+        'PASSWORD' : 'elShen10642612',
         'HOST': 'db',
         'PORT': '5432',
     }

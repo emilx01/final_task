@@ -2,6 +2,7 @@ import os
 import threading
 import json
 import base64
+import binascii
 from ninja import NinjaAPI, UploadedFile, Form, File
 from django.conf import settings
 from .models import RequestLog, ImagesArtifact
@@ -82,8 +83,20 @@ def upload_image(request,
                     filename=manual_filename,
                     artifact_type="INPUT"
                 )
-            except Exception:
-                pass
+
+            except binascii.Error:
+                log.status = "FAILED"
+                log.save()
+                results.append({
+                    "request_id": log.id, 
+                    "status": log.status, 
+                    "error": "Invalid Base64 string format"
+                })
+
+            except Exception as e:
+                log.status = "FAILED"
+                log.save()
+                results.append({"request_id": log.id, "status": log.status, "error": str(e)})
 
         threading.Thread(target=generate_gif, args=(gif_log.id,)).start()
         results.append({"request_id": gif_log.id, "status": gif_log.status})
@@ -111,7 +124,7 @@ def upload_image(request,
                 )
 
                 threading.Thread(target=process_image, args=(log.id,)).start()
-                results.append({"request_id": log.id, "status": log.status})
+                results.append({"request_id": log.id, "status": log.status, "error": "No errors"})
 
         if file_json:
             log = RequestLog.objects.create(
@@ -140,10 +153,21 @@ def upload_image(request,
                 )
 
                 threading.Thread(target=process_image, args=(log.id,)).start()
-                results.append({"request_id": log.id, "status": log.status})
+                results.append({"request_id": log.id, "status": log.status, "error": "No errors"})
 
-            except Exception:
-                pass
+            except binascii.Error:
+                log.status = "FAILED"
+                log.save()
+                results.append({
+                    "request_id": log.id, 
+                    "status": log.status, 
+                    "error": "Invalid Base64 string format"
+                })
+
+            except Exception as e:
+                log.status = "FAILED"
+                log.save()
+                results.append({"request_id": log.id, "status": log.status, "error": str(e)})
 
     return results
 
