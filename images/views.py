@@ -1,15 +1,17 @@
 import os
-import threading
+import io
 import json
 import base64
 import binascii
 from ninja import NinjaAPI, UploadedFile, Form, File
+from ninja.errors import HttpError
 from django.conf import settings
 from .models import RequestLog, ImagesArtifact
 from .schemas import UploadResponse, StatusResponse
 from django.shortcuts import get_object_or_404
 from .utils import process_image, generate_gif
 from typing import List
+from django.core.files.base import ContentFile
 
 api = NinjaAPI()
 
@@ -17,20 +19,21 @@ api = NinjaAPI()
 def health_check(request):
     return {"status": "ok"}
 
-@api.post("/upload", response=List[UploadResponse])
+@api.post("/upload", response={201: List[UploadResponse], 400: dict, 422: dict})
 def upload_image(request, 
                  file: List[UploadedFile] = File(None), 
-                 file_json: str = Form(None), 
+                 file_json: str = Form(""), 
                  specs: str = Form(...)):
     
     try:
         operations = json.loads(specs)
     except json.JSONDecodeError:
-        return [{
-            "request_id": 0,
-            "status": "FAILED",
-            "error": "Invalid JSON format (specs)"
-        }]
+        raise HttpError(400, "Invalid JSON format in specs")
+
+    if file_json:
+        file_json = file_json.strip()
+        if not file_json:
+            file_json = None
 
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     if x_forwarded_for:
@@ -50,22 +53,16 @@ def upload_image(request,
         gif_log = RequestLog.objects.create(
             status="PENDING",
             ip_address=ip,
-            payload={"operations": operations, "mode": "gif_batch"}
+            payload={"operations": operations}
         )
 
         if file:
             for current_file in file:
-                save_filename = f"{log.id}_{gif_log.timestamp.strftime('%Y-%m-%d')}_{current_file.name}"
-                save_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", save_filename)
-                
-                with open(save_path, 'wb+') as destination:
-                    for chunk in current_file.chunks():
-                        destination.write(chunk)
-                
                 ImagesArtifact.objects.create(
                     request_log=gif_log,
-                    filename=save_filename,
-                    artifact_type="INPUT"
+                    filename=current_file.name,
+                    artifact_type="INPUT",
+                    uploaded_image=current_file
                 )
 
         if file_json:
@@ -74,36 +71,39 @@ def upload_image(request,
                     png_str = file_json.split(",")[1]
                 else:
                     png_str = file_json
+
                 png_bytes = base64.b64decode(png_str)
-
-                manual_filename = f"{log.id}_{gif_log.timestamp.strftime('%Y-%m-%d')}_base64_upload.png" 
-                manual_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", manual_filename)
-
-                with open(manual_path, 'wb') as fid:
-                    fid.write(png_bytes)
+                manual_filename = f"{gif_log.id}_{gif_log.timestamp.strftime('%Y-%m-%d')}_base64_upload.png" 
 
                 ImagesArtifact.objects.create(
                     request_log=gif_log,
                     filename=manual_filename,
-                    artifact_type="INPUT"
+                    artifact_type="INPUT",
+                    uploaded_image=ContentFile(png_bytes, name=manual_filename)
                 )
 
             except binascii.Error:
-                log.status = "FAILED"
-                log.save()
+                gif_log.status = "FAILED"
+                gif_log.save()
                 results.append({
-                    "request_id": log.id, 
-                    "status": log.status, 
+                    "request_id": gif_log.id, 
+                    "status": "FAILED", 
                     "error": "Invalid Base64 string format"
                 })
 
             except Exception as e:
-                log.status = "FAILED"
-                log.save()
-                results.append({"request_id": log.id, "status": log.status, "error": str(e)})
+                gif_log.status = "FAILED"
+                gif_log.save()
+                results.append({"request_id": gif_log.id, "status": gif_log.status, "error": str(e)})
 
-        threading.Thread(target=generate_gif, args=(gif_log.id,)).start()
-        results.append({"request_id": gif_log.id, "status": gif_log.status, "error": "No errors"})
+        if file or file_json:
+            error_message = generate_gif(gif_log.id)
+            gif_log.refresh_from_db()
+            results.append({
+                "request_id": gif_log.id,
+                "status": gif_log.status,
+                "error": str(error_message) if error_message else "No errors"
+            })
 
     else:
         if file:
@@ -115,20 +115,27 @@ def upload_image(request,
                 )
 
                 save_filename = f"{log.id}_{log.timestamp.strftime('%Y-%m-%d')}_{current_file.name}"
-                save_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", save_filename)
 
-                with open(save_path, 'wb+') as destination:
-                    for chunk in current_file.chunks():
-                        destination.write(chunk)    
-                
                 ImagesArtifact.objects.create(
                     request_log=log,
                     filename=save_filename,
-                    artifact_type="INPUT"
+                    artifact_type="INPUT",
+                    uploaded_image=current_file
                 )
 
-                threading.Thread(target=process_image, args=(log.id,)).start()
-                results.append({"request_id": log.id, "status": log.status, "error": "No errors"})
+                error_message = process_image(log.id)
+                log.refresh_from_db()
+
+                final_error = "No errors"
+                if log.status == "FAILED":
+                    raise HttpError(422, f"Processing failed: {error_message}")
+
+                results.append({
+                    "request_id": log.id,
+                    "status": log.status,
+                    "error": final_error
+                })
+
 
         if file_json:
             log = RequestLog.objects.create(
@@ -145,19 +152,26 @@ def upload_image(request,
                 png_bytes = base64.b64decode(png_str)
 
                 manual_filename = f"{log.id}_{log.timestamp.strftime('%Y-%m-%d')}_base64_upload.png"
-                manual_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", manual_filename)
-
-                with open(manual_path, 'wb') as fid:
-                    fid.write(png_bytes)
 
                 ImagesArtifact.objects.create(
                     request_log=log,
                     filename=manual_filename,
-                    artifact_type="INPUT"
+                    artifact_type="INPUT",
+                    uploaded_image=ContentFile(png_bytes, name=manual_filename)
                 )
 
-                threading.Thread(target=process_image, args=(log.id,)).start()
-                results.append({"request_id": log.id, "status": log.status, "error": "No errors"})
+                error_message = process_image(log.id)
+                log.refresh_from_db()
+
+                final_error = "No errors"
+                if log.status == "FAILED":
+                    raise HttpError(422, f"Processing failed: {error_message}")
+
+                results.append({
+                    "request_id": log.id,
+                    "status": log.status,
+                    "error": final_error
+                })
 
             except binascii.Error:
                 log.status = "FAILED"
@@ -173,17 +187,16 @@ def upload_image(request,
                 log.save()
                 results.append({"request_id": log.id, "status": log.status, "error": str(e)})
 
-    return results
+    return 201, results
 
 @api.get("requests/{request_id}", response=StatusResponse)
 def get_status(request, request_id: int):
     log = get_object_or_404(RequestLog, pk=request_id)
     input_img = log.artifacts.filter(artifact_type="INPUT").first()
     output_img = log.artifacts.filter(artifact_type="OUTPUT").first()
-
     return {
         "request_id": log.id,
         "status": log.status,
-        "input_file": input_img.filename if input_img else "",
-        "output_file": output_img.filename if output_img else None
+        "input_file": input_img.uploaded_image.url if input_img else "",
+        "output_file": output_img.processed_image.url if output_img else None
         }

@@ -9,4 +9,5 @@ wheels/
 # Virtual environments
 .venv
 Media
-app.py
+/app.py
+minio_data

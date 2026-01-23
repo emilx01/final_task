@@ -16,6 +16,21 @@ services:
       timeout: 5s
       retries: 5
 
+  minio:
+    image: minio/minio:latest
+    container_name: minio_local
+    ports:
+      - '9000:9000' # Port API (pour ton code/boto3)
+      - '9001:9001' # Port Console (Interface Web)
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    # La commande lance le serveur et définit le port de la console
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./minio_data:/data # Persistance des images
+    restart: unless-stopped
+
   api:
     build: .
     volumes:

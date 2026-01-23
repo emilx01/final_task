@@ -39,6 +39,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'images',
+    'storages'
 ]
 
 MIDDLEWARE = [
@@ -83,9 +84,20 @@ DATABASES = {
         'NAME' : 'image_proc_db',
         'USER' : 'eemil',
         'PASSWORD' : 'elShen10642612',
-        'HOST': 'db',
+        'HOST': 'localhost',
         'PORT': '5432',
     }
+}
+
+
+
+STORAGES = {
+    "default": {
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
 }
 
 MEDIA_URL = '/Media/'
@@ -115,6 +127,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# MinIO / S3 Configuration
+AWS_ACCESS_KEY_ID = 'admin' # e.g. 'minioadmin'
+AWS_SECRET_ACCESS_KEY = 'password123' # e.g. 'minioadmin'
+AWS_STORAGE_BUCKET_NAME = 'images'
+AWS_S3_ENDPOINT_URL = 'http://localhost:9000' # Point to MinIO
+AWS_QUERYSTRING_AUTH = True # Set True if you want signed, temporary links (private)
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/

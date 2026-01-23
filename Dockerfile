@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY pyproject.toml .
-RUN pip install django django-ninja pillow psycopg2-binary numpy celery redis
+RUN pip install django django-ninja pillow psycopg2-binary numpy celery redis django-storages boto3
 
 COPY . .
 

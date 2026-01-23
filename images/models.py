@@ -32,6 +32,9 @@ class ImagesArtifact(models.Model):
     
     artifact_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     created_at = models.DateTimeField(auto_now_add=True)
+    uploaded_image = models.ImageField(upload_to="uploaded/")
+    processed_image = models.ImageField(upload_to="processed/")
 
     def __str__(self):
         return f"{self.filename} ({self.artifact_type})"
+    
