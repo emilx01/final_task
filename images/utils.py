@@ -10,7 +10,6 @@ from django.core.files.base import ContentFile
 def process_image(request_log_id):
     log = RequestLog.objects.get(pk=request_log_id)
     input_artifact = log.artifacts.get(artifact_type="INPUT")
-    input_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", input_artifact.filename)
     output_format = input_artifact.filename.split('.')[-1].upper()
     if output_format == 'JPG': output_format = 'JPEG'
 
@@ -81,10 +80,8 @@ def process_image(request_log_id):
                 new_extension = ".png"
             
             output_filename = f"{base_name}{new_extension}"
-            output_path = os.path.join(settings.MEDIA_ROOT, "Processed images", output_filename)
             
             buffer = io.BytesIO()
-            os.makedirs(os.path.dirname(output_path), exist_ok=True)
             img.save(buffer, format=output_format)
             image_bytes = buffer.getvalue()
 
@@ -115,8 +112,7 @@ def generate_gif(request_log_id):
     
     try:
         for artifact in input_artifacts:
-            full_path = os.path.join(settings.MEDIA_ROOT, "Uploaded images", artifact.filename)
-            img = Image.open(full_path).convert("RGB")
+            img = Image.open(artifact.uploaded_image).convert("RGB")
             images.append(img)
 
         if images:
