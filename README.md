@@ -1,23 +1,37 @@
-# Final Task Project
+Final Task Project
+A Django-based API for cloud image processing. Upload files via a file picker or JSON, apply transformations, and get a temporary link to view results.
+✨ Features
+ 1. Cloud Processing: Process and save images directly in the cloud.
+ 2. Flexible Uploads: Supports Multipart/form-data (file picker) or Base64 JSON inputs.
+ 3. Status Tracking: Check the real-time status of asynchronous image tasks.
+ 4. Secure Access: Generates temporary pre-signed links for viewing.
+⚙️ Available Operations
+ 1. Geometry: Resizing, rotating, cropping, and adding padding.
+ 2. Color: Grayscale and RGB/BGR conversion.
+ 3. Format: PNG/JPG conversion and GIF creation from multiple images.
+🚀 API Usage
+1. Upload & Process
+Endpoint: POST /api/upload/
+Payload Example:
+[{"type": "resize", "width": 1920, "height": 1080}, {"type": "rgb_bgr_conversion"}, {"type": "grayscale"}]
+[{"type": "rotate", "angle": 90}]
 
-A Django-based web application designed for containerized environments, focusing on image processing and management. This project utilizes modern Python tooling and Docker to ensure a scalable and reproducible development workflow.
+2. Check Task Status
+Endpoint: GET /api/requests/<request_id>/
+Response:
+{
+  "task_id": "12345",
+  "status": "SUCCESS",
+  "input_file": "https://storage.googleapis.com/temp-link-to-image",
+  "output_file": "https://storage.googleapis.com/temp-link-to-image"
+}
 
-## Features
-
-* **Image Management:** Dedicated structure for handling static and uploaded media assets.
-* **Containerized Architecture:** Fully orchestrated using Docker and Docker Compose for consistent deployment.
-* **Modern Dependency Management:** Uses `pyproject.toml` and `uv.lock` for fast and reliable package resolution.
-* **Database Integration:** Pre-configured with SQLite for local development, with support for migration to PostgreSQL.
-
-## Tech Stack
-
-* **Language:** Python
-* **Framework:** Django
-* **Containerization:** Docker & Docker Compose
-* **Dependency Manager:** uv (configured via `pyproject.toml`)
-* **Database:** SQLite (default), PostgreSQL (compatible)
-
-## Project Structure
+🛠 Tech Stack
+ 1. Language: Python & Django
+ 2. Environment: Docker & Docker Compose
+ 3. Package Manager: uv
+ 4. Database: PostgreSQL
+📂 Project Structure
 
 ```text
 .
@@ -32,62 +46,12 @@ A Django-based web application designed for containerized environments, focusing
 
 ```
 
-## Getting Started
-
-### Prerequisites
-
-* Docker and Docker Compose installed.
-* Python installed (if running locally without Docker).
-* `uv` (recommended) or `pip` for dependency management.
-
-### Running with Docker
-
-1. Clone the repository:
-
-```bash
-git clone https://github.com/emilx01/final_task.git
-cd final_task
-
-```
-
-2. Build and start the containers:
-
-```bash
-docker-compose up --build
-
-```
-
-### Running Locally
-
-1. Create a virtual environment:
-
-```bash
-python -m venv .venv
-source .venv/bin/activate.fish  # For Fish shell users
-# or
-source .venv/bin/activate       # For Bash/Zsh users
-
-```
-
-2. Install dependencies:
-If you are using `uv`:
-```bash
-uv sync
-
-```
-
-
-If you are using standard `pip`:
-```bash
-pip install .
-
-```
-
-
-3. Run migrations and start the server:
-
-```bash
-python manage.py migrate
-python manage.py runserver
-
-```
+🚥 Getting Started
+Docker
+ 1. git clone https://github.com/emilx01/final_task.git
+ 2. cd final_task
+ 3. docker-compose up --build
+Local
+ 1. uv sync
+ 2. python manage.py migrate
+ 3. python manage.py runserver
